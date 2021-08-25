@@ -263,7 +263,8 @@ df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱"] + " " + df_add_yoy_c["代�
     " YoY " + df_add_yoy_c["YoY"].fillna(0).round(0).astype(int).astype(str) + "%"
 df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱代號"].str.replace(" -", "-", regex=False)
 
-yoy_rank = df_add_yoy_c.sort_values(by=["YoY"], ascending=False, na_position="last")["名稱代號"].tolist()
+yoy_rank = df_add_yoy_c[df_add_yoy_c["YoY"] < 1000].sort_values(by=["YoY"], \
+    ascending=False, na_position="last")["名稱代號"].tolist()
 yoy_chg_p_rank = df_add_yoy_c[df_add_yoy_c["yoy_chg"] > 0].sort_values(by=["yoy_chg"], \
     ascending=False, na_position="last")["名稱代號"].tolist()
 yoy_chg_n_rank = df_add_yoy_c[df_add_yoy_c["yoy_chg"] < 0].sort_values(by=["yoy_chg"], \
@@ -310,4 +311,4 @@ YoY轉負: {}
     yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str)
 
 xlsx_list = list(Path(xlsx_dir).iterdir())
-mail(xlsx_list[-1])
+# mail(xlsx_list[-1])
