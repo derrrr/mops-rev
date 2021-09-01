@@ -269,12 +269,18 @@ yoy_chg_p_rank = df_add_yoy_c[df_add_yoy_c["yoy_chg"] > 0].sort_values(by=["yoy_
     ascending=False, na_position="last")["名稱代號"].tolist()
 yoy_chg_n_rank = df_add_yoy_c[df_add_yoy_c["yoy_chg"] < 0].sort_values(by=["yoy_chg"], \
     ascending=True, na_position="last")["名稱代號"].tolist()
+
 if not df_add_yoy_c[(df_add_yoy_c["上月YoY"] < 0) & (df_add_yoy_c["YoY"] > 0)].empty:
     df_yoy_n_to_p = df_add_yoy_c[(df_add_yoy_c["上月YoY"] < 0) & (df_add_yoy_c["YoY"] > 0)]
     yoy_n_to_p = df_yoy_n_to_p.sort_values(by=["yoy_chg"], ascending=False, na_position="last")["名稱代號"].tolist()
+else:
+    yoy_n_to_p = []
+
 if not df_add_yoy_c[(df_add_yoy_c["上月YoY"] > 0) & (df_add_yoy_c["YoY"] < 0)].empty:
     df_yoy_p_to_n = df_add_yoy_c[(df_add_yoy_c["上月YoY"] > 0) & (df_add_yoy_c["YoY"] < 0)]
     yoy_p_to_n = df_yoy_p_to_n.sort_values(by=["yoy_chg"], ascending=True, na_position="last")["名稱代號"].tolist()
+else:
+    yoy_p_to_n = []
 
 rank_list = [yoy_rank, list(reversed(yoy_rank)), yoy_chg_p_rank, yoy_chg_n_rank, yoy_n_to_p, yoy_p_to_n]
 yoy_rank_str, yoy_rank_r_str, yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str = \
@@ -311,4 +317,4 @@ YoY轉負: {}
     yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str)
 
 xlsx_list = list(Path(xlsx_dir).iterdir())
-# mail(xlsx_list[-1])
+mail(xlsx_list[-1])
