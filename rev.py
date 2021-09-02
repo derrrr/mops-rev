@@ -98,6 +98,17 @@ def pickup_filter(list_f, pick_num):
     else:
         return ", ".join(list_f[:pick_num])
 
+def html_tag(element, atr, value, text):
+    return '<{} {}="{}">{}</{}>'.format(element, atr, value, text, element)
+
+def html_colorize(x):
+    if x < 0:
+        return html_tag("span", "style", "color:crimson;", "{}%".format(round(x)))
+    elif x > 0:
+        return html_tag("span", "style", "color:dodgerblue;", "{}%".format(round(x)))
+    else:
+        return "{}%".format(round(x))
+
 def mail(attach_file=None):
     to_list = config["SMTP"]["to"].replace(" ", "").split(",")
     ccto_list = config["SMTP"]["ccto"].replace(" ", "").split(",")
@@ -132,7 +143,7 @@ def mail(attach_file=None):
     msg["From"] = addr_from
     msg["Subject"] = "{}月營收-{}".format(attach_file.stem[11:13], re.search("\d{4}-\d{2}-\d{2}", attach_file.stem)[0])
 
-    msg.attach(MIMEText(mail_text, "plain"))
+    msg.attach(MIMEText(mail_content, "html"))
 
     part = MIMEBase("application", "octet-stream")
     part.set_payload(open(attach_file, "rb").read())
@@ -259,8 +270,8 @@ with pd.ExcelWriter(xlsx_path, engine="openpyxl", mode="a") as writer:
 # filter
 df_add_yoy_c = df_add_yoy.copy()
 df_add_yoy_c["yoy_chg"] = df_add_yoy_c["YoY"] - df_add_yoy_c["上月YoY"]
-df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱"] + " " + df_add_yoy_c["代號"].astype(str) + \
-    " YoY " + df_add_yoy_c["YoY"].fillna(0).round(0).astype(int).astype(str) + "%"
+df_add_yoy_c["YoY_html"] = df_add_yoy_c["YoY"].apply(html_colorize)
+df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱"] + " " + df_add_yoy_c["代號"].astype(str) + " YoY " + df_add_yoy_c["YoY_html"]
 df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱代號"].str.replace(" -", "-", regex=False)
 
 yoy_rank = df_add_yoy_c[df_add_yoy_c["YoY"] < 1000].sort_values(by=["YoY"], \
@@ -297,24 +308,28 @@ else:
     previous_time = datetime.datetime.strptime(add_list[-2].stem[-15:], "%Y-%m-%d-%H%M")
     previous_text = datetime.datetime.strftime(update_time, "%Y-%m-%d %H:%M")
 
-mail_text ="""
-### 測試中
-
-月營收: {}
-
-更新時間: {}
-上次更新時間: {}
-
-YoY優: {}
-YoY差: {}
-
-YoY跳升: {}
-YoY下降: {}
-
-YoY轉正: {}
-YoY轉負: {}
+mail_html ="""
+<html>\
+### 測試中<br/>\
+<br/>\
+月營收: {}<br/>\
+<br/>\
+更新時間: {}<br/>\
+上次更新時間: {}<br/>\
+<br/>\
+YoY優: {}<br/>\
+YoY差: {}<br/>\
+<br/>\
+YoY跳升: {}<br/>\
+YoY下降: {}<br/>\
+<br/>\
+YoY轉正: {}<br/>\
+YoY轉負: {}<br/>\
 """.format(rev_m, update_text, previous_text, yoy_rank_str, yoy_rank_r_str, \
     yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str)
+
+soup_mail = BS(mail_html, "lxml")
+mail_content = soup_mail.prettify()
 
 xlsx_list = list(Path(xlsx_dir).iterdir())
 mail(xlsx_list[-1])
