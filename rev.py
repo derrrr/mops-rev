@@ -306,7 +306,7 @@ if add_list[-1].stem[:13] != add_list[-2].stem[:13]:
     previous_text = "無"
 else:
     previous_time = datetime.datetime.strptime(add_list[-2].stem[-15:], "%Y-%m-%d-%H%M")
-    previous_text = datetime.datetime.strftime(update_time, "%Y-%m-%d %H:%M")
+    previous_text = datetime.datetime.strftime(previous_time, "%Y-%m-%d %H:%M")
 
 mail_html ="""
 <html>\
@@ -325,6 +325,9 @@ YoY下降: {}<br/>\
 <br/>\
 YoY轉正: {}<br/>\
 YoY轉負: {}<br/>\
+<br/>\
+<br/>\
+附件excel有兩個sheet，一個是新增，一個是累計公告<br/>\
 """.format(rev_m, update_text, previous_text, yoy_rank_str, yoy_rank_r_str, \
     yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str)
 
