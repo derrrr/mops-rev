@@ -42,10 +42,6 @@ def multiple_replace(sub_dict, text):
      # For each match, look-up corresponding value in dictionary
     return regex.sub(lambda mo: sub_dict[mo.string[mo.start():mo.end()]], text)
 
-def mkdirs(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
 def df_m_pick(df_path):
     df = pd.read_csv(df_path, encoding="utf-8-sig")
     df[df["資料年月"][0]] = df["月營收"]
@@ -57,7 +53,7 @@ def save_rev(market, date_Y, data_m):
     rs = _requests_session()
     res = rs.get(url)
     res.encoding = "utf-8-sig"
-    mkdirs("./csv/{}".format(market))
+    os.makedirs("./csv/{}".format(market), exist_ok=True))
 
 #     date_save = date.today().strftime("%Y-%m-%d")
     # date_save = yesterday.strftime("%Y-%m-%d")
@@ -106,8 +102,10 @@ def html_colorize(x):
         return html_tag("span", "style", "color:crimson;", "{}%".format(round(x)))
     elif x > 0:
         return html_tag("span", "style", "color:dodgerblue;", "{}%".format(round(x)))
-    else:
+    elif x == 0:
         return "{}%".format(round(x))
+    else:
+        return ""
 
 def mail(attach_file=None):
     to_list = config["SMTP"]["to"].replace(" ", "").split(",")
@@ -210,7 +208,7 @@ df_c = df_c.drop(drop_cols, axis=1, inplace=False).drop_duplicates()
 df_c["資料年月"] = df_c["資料年月"].apply(data_date)
 df_c = df_c.sort_values(["YoY", "MoM"], ascending=False, na_position="last")
 
-mkdirs("./csv/all")
+os.makedirs("./csv/all", exist_ok=True))
 concat_path = "./csv/all/m-rev-{}-{}-all-{}.csv".format(str(date_Y), str(data_m).zfill(2), datetime.datetime.now().strftime("%Y-%m-%d-%H%M"))
 df_c.to_csv(concat_path, index=False, encoding="utf-8-sig")
 
@@ -222,7 +220,7 @@ previous_path = concat_list[-2]
 
 df_0 = pd.read_csv(last_path, encoding="utf-8-sig")
 
-mkdirs(add_dir)
+os.makedirs(add_dir, exist_ok=True)
 add_path = "{}/{}".format(add_dir, concat_list[-1].name.replace("all", "add"))
 
 if last_path.stem[:13] != previous_path.stem[:13]:
@@ -255,7 +253,7 @@ yoy_m = [i for i in df_data_yoy.columns if i.startswith(previous_m)][0]
 df_add_yoy = merge_previous_yoy(df_add, df_data_yoy)
 df_con_yoy = merge_previous_yoy(df_con, df_data_yoy)
 
-mkdirs(xlsx_dir)
+os.makedirs(xlsx_dir, exist_ok=True))
 xlsx_path = "{}/{}.xlsx".format(xlsx_dir, add_list[-1].stem)
 
 df_to_xlsx(df_add_yoy, xlsx_path, "新增")
