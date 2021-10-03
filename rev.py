@@ -53,7 +53,7 @@ def save_rev(market, date_Y, data_m):
     rs = _requests_session()
     res = rs.get(url)
     res.encoding = "utf-8-sig"
-    os.makedirs("./csv/{}".format(market), exist_ok=True))
+    os.makedirs("./csv/{}".format(market), exist_ok=True)
 
 #     date_save = date.today().strftime("%Y-%m-%d")
     # date_save = yesterday.strftime("%Y-%m-%d")
@@ -208,7 +208,7 @@ df_c = df_c.drop(drop_cols, axis=1, inplace=False).drop_duplicates()
 df_c["資料年月"] = df_c["資料年月"].apply(data_date)
 df_c = df_c.sort_values(["YoY", "MoM"], ascending=False, na_position="last")
 
-os.makedirs("./csv/all", exist_ok=True))
+os.makedirs("./csv/all", exist_ok=True)
 concat_path = "./csv/all/m-rev-{}-{}-all-{}.csv".format(str(date_Y), str(data_m).zfill(2), datetime.datetime.now().strftime("%Y-%m-%d-%H%M"))
 df_c.to_csv(concat_path, index=False, encoding="utf-8-sig")
 
@@ -253,7 +253,7 @@ yoy_m = [i for i in df_data_yoy.columns if i.startswith(previous_m)][0]
 df_add_yoy = merge_previous_yoy(df_add, df_data_yoy)
 df_con_yoy = merge_previous_yoy(df_con, df_data_yoy)
 
-os.makedirs(xlsx_dir, exist_ok=True))
+os.makedirs(xlsx_dir, exist_ok=True)
 xlsx_path = "{}/{}.xlsx".format(xlsx_dir, add_list[-1].stem)
 
 df_to_xlsx(df_add_yoy, xlsx_path, "新增")
