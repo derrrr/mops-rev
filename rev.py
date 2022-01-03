@@ -185,13 +185,15 @@ add_dir = "./csv/add"
 # 月營收xlsx
 xlsx_dir = "./xlsx"
 
-date_Y = datetime.date.today().year
+
 
 if datetime.date.today().day < 15:
-    data_m = datetime.date.today().month - 1
+    data_rs = datetime.date.today() - relativedelta(months=1)
 else:
-    data_m = datetime.date.today().month
-data_m
+    data_rs = datetime.date.today()
+
+date_Y = data_rs.year
+data_m = data_rs.month
 
 # market = ["sii", "otc", "rotc"]
 market = ["sii", "otc"]
