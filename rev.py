@@ -55,8 +55,6 @@ def save_rev(market, date_Y, data_m):
     res.encoding = "utf-8-sig"
     os.makedirs("./csv/{}".format(market), exist_ok=True)
 
-#     date_save = date.today().strftime("%Y-%m-%d")
-    # date_save = yesterday.strftime("%Y-%m-%d")
     date_save = datetime.datetime.now().strftime("%Y-%m-%d-%H%M")
 
     save_path = "./csv/_market/{}/m-rev-{}-{}-{}-{}.csv".format(market, str(date_Y), str(data_m).zfill(2), market, date_save)
@@ -76,6 +74,14 @@ def data_date(x):
 
 def df_to_xlsx(df, path, sht_name):
     df.to_excel(path, sheet_name=sht_name, index=False, float_format="%.2f", engine="openpyxl", encoding="utf-8-sig", freeze_panes=(1, 3))
+
+def merge_previous_mom(df, df_mom):
+    previous_mom = df_mom[["代號", mom_m]]
+    previous_mom.columns = ["代號", "上月MoM"]
+    df_merge_mom = df.merge(previous_mom, on="代號", how="left", indicator=False)
+    mom_cols = df_merge_mom.columns.tolist()
+    mom_cols.insert(-5, mom_cols[-1])
+    return df_merge_mom[mom_cols[:-1]]
 
 def merge_previous_yoy(df, df_yoy):
     previous_yoy = df_yoy[["代號", yoy_m]]
@@ -106,6 +112,19 @@ def html_colorize(x):
         return "{}%".format(round(x))
     else:
         return ""
+
+def html_colorize_M(x):
+    if x < 0:
+        return html_tag("span", "style", "color:#C24641;", "{}%".format(round(x)))
+    elif x > 0:
+        return html_tag("span", "style", "color:cornflowerblue;", "{}%".format(round(x)))
+    elif x == 0:
+        return "{}%".format(round(x))
+    else:
+        return ""
+
+def html_italic(text):
+    return '<i>{}</i>'.format(text)
 
 def mail(attach_file=None):
     to_list = config["SMTP"]["to"].replace(" ", "").split(",")
@@ -185,13 +204,7 @@ add_dir = "./csv/add"
 # 月營收xlsx
 xlsx_dir = "./xlsx"
 
-
-
-if datetime.date.today().day < 15:
-    data_rs = datetime.date.today() - relativedelta(months=1)
-else:
-    data_rs = datetime.date.today()
-
+data_rs = datetime.date.today() - relativedelta(months=1)
 date_Y = data_rs.year
 data_m = data_rs.month
 
@@ -252,8 +265,19 @@ data_yoy_list = list(Path(data_yoy_dir).iterdir())
 df_data_yoy = pd.read_csv(data_yoy_list[-1], encoding="utf-8-sig")
 yoy_m = [i for i in df_data_yoy.columns if i.startswith(previous_m)][0]
 
-df_add_yoy = merge_previous_yoy(df_add, df_data_yoy)
-df_con_yoy = merge_previous_yoy(df_con, df_data_yoy)
+# Calculate the MoM data
+data_rev_list = list(Path(data_rev_dir).iterdir())
+df_data_rev = pd.read_csv(data_rev_list[-1], encoding="utf-8-sig", index_col="代號").drop(["名稱"], axis=1)
+df_data_mom = df_data_rev.pct_change(axis="columns", periods=1).apply(lambda x: x*100).round(decimals=2).reset_index(level=0)
+mom_m = [i for i in df_data_mom.columns if i.startswith(previous_m)][0]
+
+# df_add_yoy = merge_previous_yoy(df_add, df_data_yoy)
+# df_con_yoy = merge_previous_yoy(df_con, df_data_yoy)
+
+df_add_mom = merge_previous_mom(df_add, df_data_mom)
+df_con_mom = merge_previous_mom(df_con, df_data_mom)
+df_add_yoy = merge_previous_yoy(df_add_mom, df_data_yoy)
+df_con_yoy = merge_previous_yoy(df_con_mom, df_data_yoy)
 
 os.makedirs(xlsx_dir, exist_ok=True)
 xlsx_path = "{}/{}.xlsx".format(xlsx_dir, add_list[-1].stem)
@@ -270,10 +294,18 @@ with pd.ExcelWriter(xlsx_path, engine="openpyxl", mode="a") as writer:
 # filter
 df_add_yoy_c = df_add_yoy.copy()
 df_add_yoy_c["yoy_chg"] = df_add_yoy_c["YoY"] - df_add_yoy_c["上月YoY"]
+df_add_yoy_c["mom_chg"] = df_add_yoy_c["MoM"] - df_add_yoy_c["上月MoM"]
+
 df_add_yoy_c["YoY_html"] = df_add_yoy_c["YoY"].apply(html_colorize)
-df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱"] + " " + df_add_yoy_c["代號"].astype(str) + " YoY " + df_add_yoy_c["YoY_html"]
+
+df_add_yoy_c["MoM_color"] = " M " + df_add_yoy_c["MoM"].apply(html_colorize_M)
+df_add_yoy_c["MoM_html"] = df_add_yoy_c["MoM_color"].apply(html_italic)
+
+df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱"] + " " + df_add_yoy_c["代號"].astype(str) + \
+    df_add_yoy_c["MoM_html"] + " Y " + df_add_yoy_c["YoY_html"]
 df_add_yoy_c["名稱代號"] = df_add_yoy_c["名稱代號"].str.replace(" -", "-", regex=False)
 
+# ranking by YoY
 yoy_rank = df_add_yoy_c[df_add_yoy_c["YoY"] < 1000].sort_values(by=["YoY"], \
     ascending=False, na_position="last")["名稱代號"].tolist()
 yoy_chg_p_rank = df_add_yoy_c[df_add_yoy_c["yoy_chg"] > 0].sort_values(by=["yoy_chg"], \
@@ -293,9 +325,54 @@ if not df_add_yoy_c[(df_add_yoy_c["上月YoY"] > 0) & (df_add_yoy_c["YoY"] < 0)]
 else:
     yoy_p_to_n = []
 
-rank_list = [yoy_rank, list(reversed(yoy_rank)), yoy_chg_p_rank, yoy_chg_n_rank, yoy_n_to_p, yoy_p_to_n]
+yoy_rank_list = [yoy_rank, list(reversed(yoy_rank)), yoy_chg_p_rank, yoy_chg_n_rank, yoy_n_to_p, yoy_p_to_n]
 yoy_rank_str, yoy_rank_r_str, yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str = \
-    [pickup_filter(x, 7) for x in rank_list]
+    [pickup_filter(x, 6) for x in yoy_rank_list]
+
+# ranking by MoM
+mom_rank_100_1000 = df_add_yoy_c[(df_add_yoy_c["MoM"] >= 100) & (df_add_yoy_c["MoM"] < 1000)].sort_values(by=["MoM"], \
+    ascending=False, na_position="last")["名稱代號"].tolist()
+mom_rank_50_100 = df_add_yoy_c[(df_add_yoy_c["MoM"] >= 50) & (df_add_yoy_c["MoM"] < 100)].sort_values(by=["MoM"], \
+    ascending=False, na_position="last")["名稱代號"].tolist()
+mom_rank_25_50= df_add_yoy_c[(df_add_yoy_c["MoM"] >= 25) & (df_add_yoy_c["MoM"] < 50)].sort_values(by=["MoM"], \
+    ascending=False, na_position="last")["名稱代號"].tolist()
+mom_rank_10_25= df_add_yoy_c[(df_add_yoy_c["MoM"] >= 10) & (df_add_yoy_c["MoM"] < 25)].sort_values(by=["MoM"], \
+    ascending=False, na_position="last")["名稱代號"].tolist()
+
+mom_rank_n_60 = df_add_yoy_c[df_add_yoy_c["MoM"] <= -60].sort_values(by=["MoM"], \
+    ascending=True, na_position="last")["名稱代號"].tolist()
+mom_rank_n_40_60 = df_add_yoy_c[(df_add_yoy_c["MoM"] <= -40) & (df_add_yoy_c["MoM"] > -60)].sort_values(by=["MoM"], \
+    ascending=True, na_position="last")["名稱代號"].tolist()
+mom_rank_n_20_40 = df_add_yoy_c[(df_add_yoy_c["MoM"] <= -20) & (df_add_yoy_c["MoM"] > -40)].sort_values(by=["MoM"], \
+    ascending=True, na_position="last")["名稱代號"].tolist()
+
+# mom_chg_p_rank = df_add_yoy_c[(df_add_yoy_c["mom_chg"] > 0) & (df_add_yoy_c["mom_chg"] < 1000)].sort_values(by=["mom_chg"], \
+#     ascending=False, na_position="last")["名稱代號"].tolist()
+# mom_chg_n_rank = df_add_yoy_c[(df_add_yoy_c["mom_chg"] < 0) & (df_add_yoy_c["mom_chg"] > -100)].sort_values(by=["mom_chg"], \
+#     ascending=True, na_position="last")["名稱代號"].tolist()
+
+mom_rank_list = [mom_rank_100_1000, mom_rank_50_100, mom_rank_25_50, mom_rank_10_25, \
+    mom_rank_n_60, mom_rank_n_40_60, mom_rank_n_20_40]
+mom_rank_100_1000_str, mom_rank_50_100_str, mom_rank_25_50_str, mom_rank_10_25_str, \
+    mom_rank_n_60_str, mom_rank_n_40_60_str, mom_rank_n_20_40_str = [pickup_filter(x, 6) for x in mom_rank_list]
+
+# ranking by MoM and YoY
+m_y_rank_s = df_add_yoy_c[(df_add_yoy_c["MoM"] >= 20) & \
+    (df_add_yoy_c["YoY"] >= 50) & (df_add_yoy_c["YoY"] < 1000)].sort_values(by=["MoM", "YoY"], \
+    ascending=[False, False], na_position="last")["名稱代號"].tolist()
+m_y_rank_good = df_add_yoy_c[(df_add_yoy_c["MoM"] >= 10) & (df_add_yoy_c["MoM"] < 20) & \
+    (df_add_yoy_c["YoY"] >= 30) & (df_add_yoy_c["YoY"] < 1000)].sort_values(by=["MoM", "YoY"], \
+    ascending=[False, False], na_position="last")["名稱代號"].tolist()
+m_y_rank_poor = df_add_yoy_c[(df_add_yoy_c["MoM"] <= -10) & (df_add_yoy_c["MoM"] > -20) & \
+    (df_add_yoy_c["YoY"] <= -30)].sort_values(by=["MoM", "YoY"], \
+    ascending=[True, True], na_position="last")["名稱代號"].tolist()
+m_y_rank_hell = df_add_yoy_c[(df_add_yoy_c["MoM"] <= -20) & (df_add_yoy_c["MoM"] > -100) & \
+    (df_add_yoy_c["YoY"] <= -50)].sort_values(by=["MoM", "YoY"], \
+    ascending=[True, True], na_position="last")["名稱代號"].tolist()
+
+m_y_rank_list = [m_y_rank_s, m_y_rank_good, m_y_rank_poor, m_y_rank_hell]
+m_y_rank_s_str, m_y_rank_good_str, m_y_rank_poor_str, m_y_rank_hell_str = \
+    [pickup_filter(x, 6) for x in m_y_rank_list]
 
 # email with xlsx attachment
 config = _load_config()
@@ -308,15 +385,41 @@ else:
     previous_time = datetime.datetime.strptime(add_list[-2].stem[-15:], "%Y-%m-%d-%H%M")
     previous_text = datetime.datetime.strftime(previous_time, "%Y-%m-%d %H:%M")
 
-mail_html ="""
+mail_html_head ="""
 <html>\
 ### 測試中<br/>\
+新增MoM<br/>\
+未來可能加上排除名單，避免沒用的上榜<br/>\
 <br/>\
 月營收: {}<br/>\
+Y即YoY，M即MoM<br/>\
 <br/>\
 更新時間: {}<br/>\
 上次更新時間: {}<br/>\
 <br/>\
+""".format(rev_m, update_text, previous_text)
+
+mail_html_m_y="""
+月年雙噴: {}<br/>\
+月年優: {}<br/>\
+月年降: {}<br/>\
+月年雙廢: {}<br/>\
+<br/>\
+""".format(m_y_rank_s_str, m_y_rank_good_str, m_y_rank_poor_str, m_y_rank_hell_str)
+
+mail_html_mom ="""
+MoM破百: {}<br/>\
+MoM 50%+: {}<br/>\
+MoM 25%+: {}<br/>\
+MoM 10%+: {}<br/>\
+MoM廢: {}<br/>\
+MoM -40%: {}<br/>\
+MoM -20%: {}<br/>\
+<br/>\
+""".format(mom_rank_100_1000_str, mom_rank_50_100_str, mom_rank_25_50_str, mom_rank_10_25_str, \
+    mom_rank_n_60_str, mom_rank_n_40_60_str, mom_rank_n_20_40_str)
+
+mail_html_yoy ="""
 YoY優: {}<br/>\
 YoY差: {}<br/>\
 <br/>\
@@ -326,11 +429,15 @@ YoY下降: {}<br/>\
 YoY轉正: {}<br/>\
 YoY轉負: {}<br/>\
 <br/>\
-<br/>\
-附件excel有兩個sheet，一個是新增，一個是累計公告<br/>\
-""".format(rev_m, update_text, previous_text, yoy_rank_str, yoy_rank_r_str, \
+""".format(yoy_rank_str, yoy_rank_r_str, \
     yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str)
 
+mail_html_end ="""
+<br/>\
+附件excel有兩個sheet，一個是新增，一個是累計公告<br/>\
+"""
+
+mail_html = mail_html_head + mail_html_m_y + mail_html_mom + mail_html_yoy + mail_html_end
 soup_mail = BS(mail_html, "lxml")
 mail_content = soup_mail.prettify()
 
