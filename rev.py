@@ -357,6 +357,9 @@ mom_rank_100_1000_str, mom_rank_50_100_str, mom_rank_25_50_str, mom_rank_10_25_s
     mom_rank_n_60_str, mom_rank_n_40_60_str, mom_rank_n_20_40_str = [pickup_filter(x, 6) for x in mom_rank_list]
 
 # ranking by MoM and YoY
+m_y_rank_ss = df_add_yoy_c[(df_add_yoy_c["MoM"] >= 20) & \
+    (df_add_yoy_c["YoY"] >= 1000)].sort_values(by=["MoM", "YoY"], \
+    ascending=[False, False], na_position="last")["名稱代號"].tolist()
 m_y_rank_s = df_add_yoy_c[(df_add_yoy_c["MoM"] >= 20) & \
     (df_add_yoy_c["YoY"] >= 50) & (df_add_yoy_c["YoY"] < 1000)].sort_values(by=["MoM", "YoY"], \
     ascending=[False, False], na_position="last")["名稱代號"].tolist()
@@ -370,8 +373,8 @@ m_y_rank_hell = df_add_yoy_c[(df_add_yoy_c["MoM"] <= -20) & (df_add_yoy_c["MoM"]
     (df_add_yoy_c["YoY"] <= -50)].sort_values(by=["MoM", "YoY"], \
     ascending=[True, True], na_position="last")["名稱代號"].tolist()
 
-m_y_rank_list = [m_y_rank_s, m_y_rank_good, m_y_rank_poor, m_y_rank_hell]
-m_y_rank_s_str, m_y_rank_good_str, m_y_rank_poor_str, m_y_rank_hell_str = \
+m_y_rank_list = [m_y_rank_ss, m_y_rank_s, m_y_rank_good, m_y_rank_poor, m_y_rank_hell]
+m_y_rank_ss_str, m_y_rank_s_str, m_y_rank_good_str, m_y_rank_poor_str, m_y_rank_hell_str = \
     [pickup_filter(x, 6) for x in m_y_rank_list]
 
 # email with xlsx attachment
@@ -388,7 +391,7 @@ else:
 mail_html_head ="""
 <html>\
 ### 測試中<br/>\
-新增MoM<br/>\
+閱讀性改善中，歡迎提供建議<br/>\
 未來可能加上排除名單，避免沒用的上榜<br/>\
 <br/>\
 月營收: {}<br/>\
@@ -400,35 +403,36 @@ Y即YoY，M即MoM<br/>\
 """.format(rev_m, update_text, previous_text)
 
 mail_html_m_y="""
-月年雙噴: {}<br/>\
-月年優: {}<br/>\
-月年降: {}<br/>\
-月年雙廢: {}<br/>\
-<br/>\
-""".format(m_y_rank_s_str, m_y_rank_good_str, m_y_rank_poor_str, m_y_rank_hell_str)
+<span style="font-weight:bold;color:lightseagreen;">月年炸裂</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">月年雙噴</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">月年優</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">月年降</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">月年雙廢</span>: {}<br/><br/>\
+<br/><br/>\
+""".format(m_y_rank_ss_str, m_y_rank_s_str, m_y_rank_good_str, m_y_rank_poor_str, m_y_rank_hell_str)
 
 mail_html_mom ="""
-MoM破百: {}<br/>\
-MoM 50%+: {}<br/>\
-MoM 25%+: {}<br/>\
-MoM 10%+: {}<br/>\
-MoM廢: {}<br/>\
-MoM -40%: {}<br/>\
-MoM -20%: {}<br/>\
-<br/>\
+<span style="font-weight:bold;color:lightseagreen;">MoM破百</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">MoM 50%+</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">MoM 25%+</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">MoM 10%+</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">MoM -20%</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">MoM -40%</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">MoM廢</span>: {}<br/><br/>\
+<br/><br/>\
 """.format(mom_rank_100_1000_str, mom_rank_50_100_str, mom_rank_25_50_str, mom_rank_10_25_str, \
-    mom_rank_n_60_str, mom_rank_n_40_60_str, mom_rank_n_20_40_str)
+    mom_rank_n_20_40_str, mom_rank_n_40_60_str, mom_rank_n_60_str)
 
 mail_html_yoy ="""
-YoY優: {}<br/>\
-YoY差: {}<br/>\
-<br/>\
-YoY跳升: {}<br/>\
-YoY下降: {}<br/>\
-<br/>\
-YoY轉正: {}<br/>\
-YoY轉負: {}<br/>\
-<br/>\
+<span style="font-weight:bold;color:lightseagreen;">YoY優</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">YoY差</span>: {}<br/><br/>\
+<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">YoY跳升</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">YoY下降</span>: {}<br/><br/>\
+<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">YoY轉正</span>: {}<br/><br/>\
+<span style="font-weight:bold;color:lightseagreen;">YoY轉負</span>: {}<br/><br/>\
+<br/><br/>\
 """.format(yoy_rank_str, yoy_rank_r_str, \
     yoy_chg_p_rank_str, yoy_chg_n_rank_str, yoy_n_to_p_str, yoy_p_to_n_str)
 
