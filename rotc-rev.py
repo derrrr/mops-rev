@@ -132,7 +132,7 @@ def html_italic(text):
 def mail(attach_file=None):
     to_list = config["SMTP"]["to"].replace(" ", "").split(",")
     ccto_list = config["SMTP"]["ccto"].replace(" ", "").split(",")
-    bccto_list = config["SMTP"]["bccto"].replace(" ", "").split(",")
+    bccto_list = config["SMTP"]["rbccto"].replace(" ", "").split(",")
 
     # Import the email modules
     from email.mime.multipart import MIMEMultipart
@@ -161,7 +161,7 @@ def mail(attach_file=None):
     msg["To"] = addr_to
     msg["CC"] = addr_cc
     msg["From"] = addr_from
-    msg["Subject"] = "{}月營收-{}".format(attach_file.stem[11:13], re.search("\d{4}-\d{2}-\d{2}", attach_file.stem)[0])
+    msg["Subject"] = "興櫃{}月營收-{}".format(attach_file.stem[11:13], re.search("\d{4}-\d{2}-\d{2}", attach_file.stem)[0])
 
     msg.attach(MIMEText(mail_content, "html"))
 
@@ -186,8 +186,8 @@ def mail(attach_file=None):
 
 config = _load_config()
 
-os.makedirs("./sii_otc", exist_ok=True)
-os.chdir("./sii_otc")
+os.makedirs("./rotc/", exist_ok=True)
+os.chdir("./rotc")
 
 # path
 # 過去raw csv
@@ -202,9 +202,9 @@ data_cum_rev_dir = "./csv/data/cum-rev"
 data_cum_yoy_dir = "./csv/data/cum-yoy"
 # 單天csv
 market_dir = "./csv/_market"
-sii_dir = "./csv/_market/sii"
-otc_dir = "./csv/_market/otc"
-# rotc_dir = "./csv/_market/rotc"
+# sii_dir = "./csv/_market/sii"
+# otc_dir = "./csv/_market/otc"
+rotc_dir = "./csv/_market/rotc"
 # 單天合併
 concat_dir = "./csv/all"
 # 當天新增
@@ -217,7 +217,7 @@ date_Y = data_rs.year
 data_m = data_rs.month
 
 # market = ["sii", "otc", "rotc"]
-market = ["sii", "otc"]
+market = ["rotc"]
 
 df_path = [save_rev(i, date_Y, data_m) for i in market]
 
@@ -398,9 +398,9 @@ else:
 
 mail_html_head ="""
 <html>\
-### 測試中<br/>\
-閱讀性改善中，歡迎提供建議<br/>\
-未來可能加上排除名單，避免沒用的上榜<br/>\
+### 興櫃測試中<br/>\
+<br/>\
+未來可能加上排除名單，排除興櫃金融、營建<br/>\
 <br/>\
 月營收: {}<br/>\
 Y即YoY，M即MoM<br/>\
