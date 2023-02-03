@@ -76,7 +76,8 @@ def data_date(x):
     return datetime.datetime(data_Y, data_m, 1) + relativedelta(months=1) - datetime.timedelta(days=1)
 
 def df_to_xlsx(df, path, sht_name):
-    df.to_excel(path, sheet_name=sht_name, index=False, float_format="%.2f", engine="openpyxl", encoding="utf-8-sig", freeze_panes=(1, 3))
+    # df.to_excel(path, sheet_name=sht_name, index=False, float_format="%.2f", engine="openpyxl", encoding="utf-8-sig", freeze_panes=(1, 3))
+    df.to_excel(path, sheet_name=sht_name, index=False, float_format="%.2f", engine="openpyxl", freeze_panes=(1, 3))
 
 def merge_previous_mom(df, df_mom):
     previous_mom = df_mom[["代號", mom_m]]
